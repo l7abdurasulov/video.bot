@@ -4,18 +4,25 @@ import os
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from aiohttp import web
 import yt_dlp
 
 TOKEN = "8804588411:AAGobv49SJiOeenT3v7OalQUhn_Gk_N1w9Y"
+WEBHOOK_PATH = f"/bot/{TOKEN}"
+
+RENDER_URL = os.getenv("RENDER_EXTERNAL_URL", "")
+WEBHOOK_URL = f"{RENDER_URL}{WEBHOOK_PATH}"
+
+WEB_SERVER_HOST = "0.0.0.0"
+WEB_SERVER_PORT = int(os.getenv("PORT", 8080))
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Foydalanuvchilarning qidiruv natijalarini vaqtincha saqlash uchun lug'at
 user_searches = {}
 
-# 1. Start komandasi va rasmga mos to'liq menyu hamda "Guruhga qo'shish" tugmasi
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
     user_name = message.from_user.first_name
@@ -49,7 +56,6 @@ async def cmd_start(message: Message):
     
     await message.answer(text, reply_markup=keyboard)
 
-# 2. Havolalar orqali yuklash (URL) - YouTube blokirovkasiga qarshi sozlamalar bilan
 @dp.message(F.text.startswith("http"))
 async def download_content(message: Message):
     url = message.text.strip()
@@ -81,11 +87,9 @@ async def download_content(message: Message):
         photos_to_send = []
         for file_path in downloaded_files:
             if os.path.exists(file_path):
-                # A) Rasmlar
                 if file_path.endswith(('.jpg', '.jpeg', '.png', '.webp')):
                     photos_to_send.append(InputMediaPhoto(media=FSInputFile(file_path)))
                 
-                # B) Videolar va ulardan musiqani alohida ajratib olish
                 elif file_path.endswith(('.mp4', '.mkv', '.mov', '.webm', '.avi')):
                     video_file = FSInputFile(file_path)
                     await message.answer_video(video_file, caption="Mana siz so'ragan video! 🚀")
@@ -105,7 +109,6 @@ async def download_content(message: Message):
 
                     os.remove(file_path)
                     
-                # C) Audiolar / Qo'shiqlar
                 elif file_path.endswith(('.mp3', '.m4a', '.opus', '.flac', '.wav', '.aac')):
                     audio_file = FSInputFile(file_path)
                     await message.answer_audio(audio_file, caption="Mana siz so'ragan qo'shiq! 🎵")
@@ -128,7 +131,6 @@ async def download_content(message: Message):
             if os.path.exists(file_path):
                 os.remove(file_path)
 
-# 3. Matn bo'yicha musiqa qidirish (Shazam uslubi)
 @dp.message(~F.text.startswith("http") & ~F.text.startswith("/"))
 async def search_music(message: Message):
     query = message.text.strip()
@@ -188,7 +190,6 @@ async def search_music(message: Message):
         await message.answer("❌ Qidirishda xatolik yuz berdi.")
         await bot.delete_message(chat_id=message.chat.id, message_id=processing_msg.message_id)
 
-# 4. Raqamli tugma bosilganda tanlangan qo'shiqni yuklab yuborish
 @dp.callback_query(F.data.startswith("dl_"))
 async def download_selected_audio(callback: CallbackQuery):
     user_id = callback.from_user.id
@@ -238,10 +239,24 @@ async def download_selected_audio(callback: CallbackQuery):
         logging.error(f"Audio yuklash xatoligi: {e}")
         await callback.message.answer("❌ Qo'shiqni yuklashda xatolik yuz berdi.")
 
-async def main():
-    # Webhook konfliktini oldini olish uchun
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+async def on_startup(bot: Bot):
+    if WEBHOOK_URL:
+        await bot.set_webhook(WEBHOOK_URL)
+        logging.info(f"Webhook o'rnatildi: {WEBHOOK_URL}")
+
+def main():
+    app = web.Application()
+    
+    webhook_requests_handler = SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot,
+    )
+    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+    
+    setup_application(app, dp, bot=bot)
+    dp.startup.register(on_startup)
+    
+    web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
