@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import re
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
@@ -58,7 +59,18 @@ async def cmd_start(message: Message):
 
 @dp.message(F.text.startswith("http"))
 async def download_content(message: Message):
-    url = message.text.strip()
+    raw_url = message.text.strip()
+    
+    # Instagram havolalarini xatosiz o'qish uchun tozalash
+    if "instagram.com" in raw_url:
+        match = re.search(r'/(p|reel|tv|stories)/([^/?]+)', raw_url)
+        if match:
+            url = f"https://www.instagram.com/{match.group(1)}/{match.group(2)}/"
+        else:
+            url = raw_url.split('?')[0]
+    else:
+        url = raw_url
+    
     processing_msg = await message.answer("⏳ Kontent va undagi musiqa yuklab olinmoqda, iltimos kuting...")
     
     file_prefix = f"download_{message.from_user.id}"
@@ -211,52 +223,3 @@ async def download_selected_audio(callback: CallbackQuery):
     
     file_prefix = f"audio_{user_id}"
     ydl_opts = {
-        'format': 'bestaudio',
-        'outtmpl': f'{file_prefix}_%(id)s.%(ext)s',
-        'quiet': True,
-        'geo_bypass': True,
-        'nocheckcertificate': True,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
-    }
-
-    try:
-        loop = asyncio.get_running_loop()
-        def download_audio():
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(video_url, download=True)
-                return ydl.prepare_filename(info)
-
-        audio_path = await loop.run_in_executor(None, download_audio)
-
-        if os.path.exists(audio_path):
-            audio_file = FSInputFile(audio_path)
-            await callback.message.answer_audio(audio_file, caption="🎵 Qo'shiq yuklab berildi!")
-            os.remove(audio_path)
-        else:
-            await callback.message.answer("❌ Qo'shiqni yuklab bo'lmadi.")
-
-    except Exception as e:
-        logging.error(f"Audio yuklash xatoligi: {e}")
-        await callback.message.answer("❌ Qo'shiqni yuklashda xatolik yuz berdi.")
-
-async def on_startup(bot: Bot):
-    if WEBHOOK_URL:
-        await bot.set_webhook(WEBHOOK_URL)
-        logging.info(f"Webhook o'rnatildi: {WEBHOOK_URL}")
-
-def main():
-    app = web.Application()
-    
-    webhook_requests_handler = SimpleRequestHandler(
-        dispatcher=dp,
-        bot=bot,
-    )
-    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
-    
-    setup_application(app, dp, bot=bot)
-    dp.startup.register(on_startup)
-    
-    web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
-
-if __name__ == "__main__":
-    main()
