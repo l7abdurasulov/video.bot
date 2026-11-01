@@ -12,30 +12,32 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
+# Foydalanuvchilarning qidiruv natijalarini vaqtincha saqlash uchun lug'at
 user_searches = {}
 
+# 1. Start komandasi va rasmga mos to'liq menyu hamda "Guruhga qo'shish" tugmasi
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
     user_name = message.from_user.first_name
     
     text = (
         f"🔥 Assalomu alaykum, {user_name}!\n\n"
-        "Bot orqali quyidagilarni yuklab olishingiz mumkin[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span):\n\n"
-        "• Instagram - post, stories, reels[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span);\n"
-        "• YouTube - video, shorts, audio[span_5](start_span)[span_5](end_span)[span_6](start_span)[span_6](end_span);\n"
-        "• Tik Tok - suv belgisi bo'lmagan video[span_7](start_span)[span_7](end_span)[span_8](start_span)[span_8](end_span);\n"
-        "• Facebook - post, reels[span_9](start_span)[span_9](end_span)[span_10](start_span)[span_10](end_span);\n"
-        "• Pinterest - rasm, video[span_11](start_span)[span_11](end_span)[span_12](start_span)[span_12](end_span);\n"
-        "• Snapchat - rasm, video[span_13](start_span)[span_13](end_span)[span_14](start_span)[span_14](end_span);\n"
-        "• Likee - suv belgisi bo'lmagan video[span_15](start_span)[span_15](end_span)[span_16](start_span)[span_16](end_span);\n"
-        "• Telegram - stories[span_17](start_span)[span_17](end_span)[span_18](start_span)[span_18](end_span);\n"
-        "• Threads - rasm, video[span_19](start_span)[span_19](end_span)[span_20](start_span)[span_20](end_span).\n\n"
-        "Shazam funksiya[span_21](start_span)[span_21](end_span)[span_22](start_span)[span_22](end_span):\n"
-        "• Qo'shiq nomi yoki ijrochi ismi[span_23](start_span)[span_23](end_span)[span_24](start_span)[span_24](end_span)\n"
-        "• Qo'shiq matni[span_25](start_span)[span_25](end_span)[span_26](start_span)[span_26](end_span)\n"
-        "• Video / Audio[span_27](start_span)[span_27](end_span)[span_28](start_span)[span_28](end_span)\n\n"
-        "🚀 Media yuklashni boshlash uchun uning havolasini yuboring[span_29](start_span)[span_29](end_span)[span_30](start_span)[span_30](end_span).\n"
-        "😎 Bot guruhlarda ham ishlay oladi[span_31](start_span)[span_31](end_span)[span_32](start_span)[span_32](end_span)!"
+        "Bot orqali quyidagilarni yuklab olishingiz mumkin:\n\n"
+        "• Instagram - post, stories, reels;\n"
+        "• YouTube - video, shorts, audio;\n"
+        "• Tik Tok - suv belgisi bo'lmagan video;\n"
+        "• Facebook - post, reels;\n"
+        "• Pinterest - rasm, video;\n"
+        "• Snapchat - rasm, video;\n"
+        "• Likee - suv belgisi bo'lmagan video;\n"
+        "• Telegram - stories;\n"
+        "• Threads - rasm, video.\n\n"
+        "Shazam funksiya:\n"
+        "• Qo'shiq nomi yoki ijrochi ismi\n"
+        "• Qo'shiq matni\n"
+        "• Video / Audio\n\n"
+        "🚀 Media yuklashni boshlash uchun uning havolasini yuboring.\n"
+        "😎 Bot guruhlarda ham ishlay oladi!"
     )
     
     bot_info = await bot.get_me()
@@ -47,6 +49,7 @@ async def cmd_start(message: Message):
     
     await message.answer(text, reply_markup=keyboard)
 
+# 2. Havolalar orqali yuklash (URL) - YouTube blokirovkasiga qarshi sozlamalar bilan
 @dp.message(F.text.startswith("http"))
 async def download_content(message: Message):
     url = message.text.strip()
@@ -78,9 +81,11 @@ async def download_content(message: Message):
         photos_to_send = []
         for file_path in downloaded_files:
             if os.path.exists(file_path):
+                # A) Rasmlar
                 if file_path.endswith(('.jpg', '.jpeg', '.png', '.webp')):
                     photos_to_send.append(InputMediaPhoto(media=FSInputFile(file_path)))
                 
+                # B) Videolar va ulardan musiqani alohida ajratib olish
                 elif file_path.endswith(('.mp4', '.mkv', '.mov', '.webm', '.avi')):
                     video_file = FSInputFile(file_path)
                     await message.answer_video(video_file, caption="Mana siz so'ragan video! 🚀")
@@ -100,6 +105,7 @@ async def download_content(message: Message):
 
                     os.remove(file_path)
                     
+                # C) Audiolar / Qo'shiqlar
                 elif file_path.endswith(('.mp3', '.m4a', '.opus', '.flac', '.wav', '.aac')):
                     audio_file = FSInputFile(file_path)
                     await message.answer_audio(audio_file, caption="Mana siz so'ragan qo'shiq! 🎵")
@@ -122,6 +128,7 @@ async def download_content(message: Message):
             if os.path.exists(file_path):
                 os.remove(file_path)
 
+# 3. Matn bo'yicha musiqa qidirish (Shazam uslubi)
 @dp.message(~F.text.startswith("http") & ~F.text.startswith("/"))
 async def search_music(message: Message):
     query = message.text.strip()
@@ -181,6 +188,7 @@ async def search_music(message: Message):
         await message.answer("❌ Qidirishda xatolik yuz berdi.")
         await bot.delete_message(chat_id=message.chat.id, message_id=processing_msg.message_id)
 
+# 4. Raqamli tugma bosilganda tanlangan qo'shiqni yuklab yuborish
 @dp.callback_query(F.data.startswith("dl_"))
 async def download_selected_audio(callback: CallbackQuery):
     user_id = callback.from_user.id
@@ -231,6 +239,8 @@ async def download_selected_audio(callback: CallbackQuery):
         await callback.message.answer("❌ Qo'shiqni yuklashda xatolik yuz berdi.")
 
 async def main():
+    # Webhook konfliktini oldini olish uchun
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
