@@ -6,7 +6,7 @@ from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
 import yt_dlp
 
-TOKEN = "8804588411:AAFV2AYGAodwKBBgJ0TCqCgyB.." 8804588411:AAFV2AYGA0dwKBBgJ0TCqCgyBXAscqqOyks"
+TOKEN = "8804588411:AAFV2AYGA0dwKBBgJ0TCqCgyBXAscqqOyks"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
