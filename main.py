@@ -9,7 +9,7 @@ import tempfile
 import time
 from collections import defaultdict
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 import yt_dlp
 from aiogram import Bot, Dispatcher, F
@@ -68,6 +68,15 @@ ALLOWED_HOSTS = {
     "pinterest.com",
     "pin.it",
     "threads.net",
+    "snapchat.com",
+    "t.me",
+    "telegram.me",
+    "likee.video",
+    "reddit.com",
+    "redd.it",
+    "x.com",
+    "twitter.com",
+    "capcut.com",
 }
 
 dp = Dispatcher()
@@ -95,6 +104,20 @@ def is_allowed_media_url(raw_url: str) -> bool:
     if port not in (None, 443):
         return False
     return any(host == domain or host.endswith("." + domain) for domain in ALLOWED_HOSTS)
+
+
+def normalize_media_url(raw_url: str) -> str:
+    """Normalize public Telegram post aliases to yt-dlp's supported URL shape."""
+    parsed = urlsplit(raw_url.strip())
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if host == "telegram.me" or host.endswith(".telegram.me"):
+        parsed = parsed._replace(netloc="t.me")
+        host = "t.me"
+
+    parts = [part for part in parsed.path.split("/") if part]
+    if host == "t.me" and len(parts) == 3 and parts[0] == "s" and parts[2].isdigit():
+        parsed = parsed._replace(path=f"/{parts[1]}/{parts[2]}")
+    return urlunsplit(parsed)
 
 
 def _duration_or_size_filter(info: dict, *, incomplete: bool) -> str | None:
@@ -279,10 +302,11 @@ async def start(message: Message) -> None:
         "Assalomu alaykum! 👋\n\n"
         "• Video yoki audio yuboring — undagi qo‘shiqni aniqlashga harakat qilaman.\n"
         "• Qo‘shiq nomi yoki ijrochisini yozing — qidiruv natijalarini chiqaraman.\n"
-        "• Qo‘llab-quvvatlanadigan public video havolasini yuborsangiz, media va musiqasini "
-        "qayta ishlayman.\n\n"
+        "• Public video havolalari: YouTube, Instagram, TikTok, Facebook, Pinterest, "
+        "Snapchat Spotlight, Telegram kanal posti, Likee, Reddit va X/Twitter.\n"
+        "• CapCut va Threads public sahifalari best-effort: hamma havola ochilavermaydi.\n\n"
         "Faqat yuklab olishga ruxsatingiz bor kontentdan foydalaning. "
-        "Bot private/login talab qiladigan kontent болон гео-cheklovlarni aylanib o‘tmaydi."
+        "Private, login talab qiladigan Stories va geo-cheklovlarni bot aylanib o‘tmaydi."
     )
 
 
@@ -359,9 +383,12 @@ async def _send_downloaded_media(message: Message, path: Path) -> None:
 async def _process_media_url(message: Message, url: str) -> None:
     if not is_allowed_media_url(url):
         await message.answer(
-            "Bu havola qo‘llab-quvvatlanmaydi. Ruxsatingiz bor, ommaviy HTTPS havola yuboring."
+            "Bu domen hozircha qo‘llab-quvvatlanmaydi. "
+            "YouTube, Instagram, TikTok, Facebook, Pinterest, Snapchat Spotlight, "
+            "Telegram public post, Likee, Reddit yoki X havolasini yuboring."
         )
         return
+    url = normalize_media_url(url)
     if not message.from_user:
         return
 
@@ -375,7 +402,9 @@ async def _process_media_url(message: Message, url: str) -> None:
                 await _identify_and_reply(message, media_path)
         except MediaDownloadError:
             await message.answer(
-                "Media topilmadi yoki u hajm, davomiylik yoki platforma cheklovidan oshdi."
+                "Media topilmadi yoki platforma uni botga ochmadi. "
+                "Havola public bo‘lsin; private/Stories, login, hajm yoki davomiylik "
+                "cheklovlari sababli yuklanmasligi mumkin."
             )
         except Exception as exc:
             logger.warning("URL processing failed (%s)", type(exc).__name__)
@@ -400,8 +429,12 @@ async def handle_text(message: Message) -> None:
     if not message.text or message.text.startswith("/"):
         return
     query = message.text.strip()
-    if query.startswith(("https://", "http://")):
-        clean_url = query.rstrip(").,!?;")
+    urls = re.findall(r"https?://[^\s<>]+", query)
+    if urls:
+        if len(urls) > 1:
+            await message.answer("Iltimos, bir xabarda bitta video havolasini yuboring.")
+            return
+        clean_url = urls[0].rstrip(").,!?;")
         await _process_media_url(message, clean_url)
         return
     if len(query) > MAX_SEARCH_CHARS:
