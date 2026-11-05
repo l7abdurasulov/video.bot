@@ -9,7 +9,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiohttp import web
 import yt_dlp
 
-TOKEN = "8804588411:AAGobv49SJiOeenT3v7OalQUhn_Gk_N1w9Y"
+TOKEN = "8804588411:"8804588411:AAGdoDxR5iMQACYlXscB04f05quKQS5_dH0"
 WEBHOOK_PATH = f"/bot/{TOKEN}"
 
 RENDER_URL = os.getenv("RENDER_EXTERNAL_URL", "")
