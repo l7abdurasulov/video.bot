@@ -1,4 +1,4 @@
 aiogram==3.13.1
-yt-dlp
-aiohttp
- 
+aiohttp>=3.10,<4
+python-dotenv>=1,<2
+yt-dlp>=2025.1.26,<2027
