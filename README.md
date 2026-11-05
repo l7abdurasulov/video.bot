@@ -6,11 +6,12 @@ Aiogram 3 asosidagi bot. Telegram’dan yuborilgan video/audio ichidagi qo‘shi
 
 - Telegram’dan yuborilgan audio yoki videodan 12 soniyalik namuna ajratib, qo‘shiq nomi va ijrochini topish.
 - Qo‘shiq nomi yoki ijrochi bo‘yicha YouTube qidiruvi.
-- Ruxsat etilgan HTTPS havolalardagi public media fayllarni yuklab, Telegram’ga yuborish.
+- Public HTTPS havolalardan YouTube, Instagram, TikTok, Facebook, Pinterest, Snapchat Spotlight, Telegram kanal postlari, Likee, Reddit va X/Twitter media fayllarini yuklab, Telegram’ga yuborishga urinish.
+- CapCut va Threads uchun best-effort: sahifadagi ochiq video yt-dlp tomonidan ajratilsa ishlaydi, kafolatlanmaydi.
 - Fayl hajmi, davomiyligi, playlist va havola hosti bo‘yicha cheklovlar.
 - Har bir ish uchun vaqtinchalik katalog; fayllar ish tugagach o‘chiriladi.
 
-Bot faqat siz yuklashga va qayta tarqatishga huquqingiz bo‘lgan kontentda ishlatilishi kerak. U login/cookie talab qiladigan private kontentni yoki geo-cheklovlarni aylanib o‘tmaydi.
+Bot faqat siz yuklashga va qayta tarqatishga huquqingiz bo‘lgan kontentda ishlatilishi kerak. U login/cookie talab qiladigan private kontentni yoki geo-cheklovlarni aylanib o‘tmaydi. Telegram’da faqat ochiq kanal postlari; Snapchat’da faqat Spotlight havolalari qo‘llanadi — Stories emas. Instagram va boshqa saytlardagi ayrim public postlar ham platforma cheklovlari sababli ishlamasligi mumkin.
 
 ## Kerakli narsalar
 
