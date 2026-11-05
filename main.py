@@ -56,19 +56,6 @@ MAX_SEARCH_CHARS = 160
 SESSION_TTL_SECONDS = 30 * 60
 VIDEO_EXTENSIONS = {".mp4", ".m4v", ".mov", ".mkv", ".webm", ".avi"}
 AUDIO_EXTENSIONS = {".mp3", ".m4a", ".aac", ".ogg", ".opus", ".wav", ".flac"}
-ALLOWED_HOSTS = {
-    "youtube.com",
-    "youtu.be",
-    "instagram.com",
-    "tiktok.com",
-    "vm.tiktok.com",
-    "vt.tiktok.com",
-    "facebook.com",
-    "fb.watch",
-    "pinterest.com",
-    "pin.it",
-    "threads.net",
-}
 
 dp = Dispatcher()
 recognizer = ACRCloudRecognizer()
@@ -82,6 +69,7 @@ class MediaDownloadError(RuntimeError):
 
 
 def is_allowed_media_url(raw_url: str) -> bool:
+    """Istalgan ochiq va to'g'ri HTTPS havolaga ruxsat berish uchun funksiya."""
     if not raw_url or len(raw_url) > 2048:
         return False
     try:
@@ -94,7 +82,7 @@ def is_allowed_media_url(raw_url: str) -> bool:
         return False
     if port not in (None, 443):
         return False
-    return any(host == domain or host.endswith("." + domain) for domain in ALLOWED_HOSTS)
+    return True
 
 
 def _duration_or_size_filter(info: dict, *, incomplete: bool) -> str | None:
@@ -279,10 +267,10 @@ async def start(message: Message) -> None:
         "Assalomu alaykum! 👋\n\n"
         "• Video yoki audio yuboring — undagi qo‘shiqni aniqlashga harakat qilaman.\n"
         "• Qo‘shiq nomi yoki ijrochisini yozing — qidiruv natijalarini chiqaraman.\n"
-        "• Qo‘llab-quvvatlanadigan public video havolasini yuborsangiz, media va musiqasini "
+        "• Istalgan ochiq (public) video havolasini yuborsangiz, media va musiqasini "
         "qayta ishlayman.\n\n"
         "Faqat yuklab olishga ruxsatingiz bor kontentdan foydalaning. "
-        "Bot private/login talab qiladigan kontent болон гео-cheklovlarni aylanib o‘tmaydi."
+        "Bot yopiq (private) yoki avtorizatsiya talab qiladigan kontent va geo-cheklovlarni aylanib o‘tmaydi."
     )
 
 
@@ -375,7 +363,7 @@ async def _process_media_url(message: Message, url: str) -> None:
                 await _identify_and_reply(message, media_path)
         except MediaDownloadError:
             await message.answer(
-                "Media topilmadi yoki u hajm, davomiylik yoki platforma cheklovidan oshdi."
+                "Media topilmadi yoki u hajm, davomiylik yoki platforma chekvalidan oshdi."
             )
         except Exception as exc:
             logger.warning("URL processing failed (%s)", type(exc).__name__)
